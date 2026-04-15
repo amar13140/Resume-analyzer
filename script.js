@@ -1,101 +1,118 @@
+let lastAnalysis = null; // helps compare different inputs
+
 function analyzeResume() {
-  const text = document.getElementById("resumeInput").value.toLowerCase();
-  const job = document.getElementById("jobRole").value.toLowerCase();
+  const text = document.getElementById("resumeInput").value.toLowerCase().trim();
+  const job = document.getElementById("jobRole").value.toLowerCase().trim();
+
+  // RESET OUTPUT EVERY TIME
+  document.getElementById("type").textContent = "";
+  document.getElementById("score").textContent = "";
+  document.getElementById("match").textContent = "";
+  document.getElementById("suggestions").textContent = "";
+
+  if (!text || text.length < 50) {
+    alert("Please enter a proper resume (at least 50 characters)");
+    return;
+  }
 
   let score = 0;
   let matchScore = 0;
   let type = "General Resume";
   let suggestions = [];
 
-  // Skill categories
-  const frontendSkills = ["html", "css", "javascript", "react"];
-  const backendSkills = ["node", "python", "java", "database"];
-  const professorSkills = [
-    "teaching", "research", "curriculum", "students",
-    "lecture", "education", "university", "academic"
-  ];
+  // Skill groups
+  const frontend = ["html","css","javascript","react","frontend","ui"];
+  const backend = ["node","python","java","api","database","backend"];
+  const professor = ["teaching","research","curriculum","students","lecture","education","university"];
+  const common = ["communication","leadership","teamwork","presentation","problem solving"];
 
-  const commonSkills = [
-    "communication", "leadership", "problem solving",
-    "teamwork", "presentation"
-  ];
+  // Count helper
+  const count = (arr) => arr.filter(word => text.includes(word)).length;
 
-  // Count matches
-  const countMatches = (skills) =>
-    skills.filter(skill => text.includes(skill)).length;
+  let f = count(frontend);
+  let b = count(backend);
+  let p = count(professor);
+  let c = count(common);
 
-  let frontCount = countMatches(frontendSkills);
-  let backCount = countMatches(backendSkills);
-  let profCount = countMatches(professorSkills);
-  let commonCount = countMatches(commonSkills);
+  // TYPE DETECTION (improved)
+  if (p >= 3) type = "Professor / Academic 🎓";
+  else if (f >= 3 && f > b) type = "Frontend Developer 💻";
+  else if (b >= 3) type = "Backend Developer ⚙️";
 
-  // Detect type
-  if (profCount >= 3) {
-    type = "Professor / Academic Resume 🎓";
-  } else if (frontCount > backCount && frontCount >= 2) {
-    type = "Frontend Developer 💻";
-  } else if (backCount >= 2) {
-    type = "Backend Developer ⚙️";
-  }
+  // -------- SCORING (MORE ACCURATE) --------
 
-  // SCORING (Balanced)
-  score += (frontCount + backCount + profCount) * 6;
-  score += commonCount * 4;
+  // Skills (max 40)
+  let skillScore = Math.min((f + b + p) * 5, 40);
 
-  if (text.includes("experience")) score += 10;
-  if (text.includes("project") || text.includes("research")) score += 10;
-  if (text.includes("education") || text.includes("degree")) score += 10;
+  // Experience (max 20)
+  let expScore = text.includes("experience") ? 15 : 0;
+  if (text.includes("internship")) expScore += 5;
 
-  // Normalize score (important fix)
-  if (score < 40 && text.length > 100) score = 60;
+  // Projects / Research (max 15)
+  let projectScore = 0;
+  if (text.includes("project")) projectScore += 8;
+  if (text.includes("research")) projectScore += 7;
+
+  // Education (max 15)
+  let eduScore = (text.includes("degree") || text.includes("btech") || text.includes("phd")) ? 15 : 5;
+
+  // Soft skills (max 10)
+  let softScore = Math.min(c * 3, 10);
+
+  score = skillScore + expScore + projectScore + eduScore + softScore;
+
   if (score > 100) score = 100;
 
-  // JOB MATCHING
-  let requiredSkills = [];
+  // -------- JOB MATCHING (SMARTER) --------
 
-  if (job.includes("frontend")) requiredSkills = frontendSkills;
-  else if (job.includes("backend")) requiredSkills = backendSkills;
-  else if (job.includes("professor") || job.includes("teacher"))
-    requiredSkills = professorSkills;
+  let required = [];
 
-  let matchCount = countMatches(requiredSkills);
+  if (job.includes("frontend")) required = frontend;
+  else if (job.includes("backend")) required = backend;
+  else if (job.includes("professor") || job.includes("teacher")) required = professor;
 
-  if (requiredSkills.length > 0) {
-    matchScore = Math.round((matchCount / requiredSkills.length) * 100);
+  let matchCount = count(required);
+  matchScore = required.length > 0 ? Math.round((matchCount / required.length) * 100) : 50;
+
+  // Adjust with experience weight
+  if (text.includes("experience")) matchScore += 10;
+  if (text.includes("project") || text.includes("research")) matchScore += 5;
+
+  if (matchScore > 100) matchScore = 100;
+
+  // -------- VERDICT --------
+  let verdict = "";
+  if (matchScore < 40) verdict = "❌ Not Suitable";
+  else if (matchScore < 70) verdict = "⚠️ Moderate Fit";
+  else verdict = "✅ Good Fit";
+
+  // -------- SMART SUGGESTIONS --------
+  if (!text.includes("experience")) {
+    suggestions.push("Add experience or internships");
   }
 
-  // Make matching forgiving
-  if (matchScore < 40 && text.length > 100) matchScore = 65;
+  if (!text.includes("project") && !text.includes("research")) {
+    suggestions.push("Include projects or research work");
+  }
 
-  // Verdict
-  let verdict = "";
-  if (matchScore < 40) verdict = "❌ Not suitable";
-  else if (matchScore < 70) verdict = "⚠️ Moderate fit";
-  else verdict = "✅ Good fit";
+  if (c < 2) {
+    suggestions.push("Add soft skills like communication, teamwork");
+  }
 
-  // Suggestions
-  if (matchScore < 70) {
+  if (required.length > 0 && matchCount < required.length / 2) {
     suggestions.push("Add more relevant skills for " + job);
   }
 
-  if (!text.includes("experience") && !text.includes("research")) {
-    suggestions.push("Add experience or research work");
+  if (text.length < 200) {
+    suggestions.push("Resume content is too short — add more details");
   }
 
-  if (commonCount < 2) {
-    suggestions.push("Include soft skills like communication & leadership");
-  }
+  // -------- DISPLAY --------
+  document.getElementById("type").textContent = "Resume Type: " + type;
+  document.getElementById("score").textContent = "Resume Score: " + score + "/100";
+  document.getElementById("match").textContent = "Job Match: " + matchScore + "% (" + verdict + ")";
+  document.getElementById("suggestions").textContent = "Suggestions: " + suggestions.join(" | ");
 
-  // Display
-  document.getElementById("type").textContent =
-    "Resume Type: " + type;
-
-  document.getElementById("score").textContent =
-    "Resume Score: " + score + "/100";
-
-  document.getElementById("match").textContent =
-    "Job Match: " + matchScore + "% (" + verdict + ")";
-
-  document.getElementById("suggestions").textContent =
-    "Suggestions: " + suggestions.join(" | ");
+  // Save last analysis (optional improvement)
+  lastAnalysis = text;
 }
