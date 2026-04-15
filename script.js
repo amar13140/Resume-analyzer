@@ -1,55 +1,71 @@
 function analyzeResume() {
   const text = document.getElementById("resumeInput").value.toLowerCase();
+  const job = document.getElementById("jobRole").value.toLowerCase();
+
+  // Skill categories
+  const frontendSkills = ["html", "css", "javascript", "react", "ui", "frontend"];
+  const backendSkills = ["node", "python", "java", "api", "database", "backend"];
 
   let score = 0;
-  let strengths = [];
-  let weaknesses = [];
+  let matchScore = 0;
+  let type = "General";
   let suggestions = [];
 
-  // Keywords
-  const skills = ["html", "css", "javascript", "python", "java", "react"];
-  const experienceWords = ["project", "internship", "experience"];
-  const educationWords = ["btech", "degree", "university"];
+  // Detect resume type
+  let frontCount = frontendSkills.filter(skill => text.includes(skill)).length;
+  let backCount = backendSkills.filter(skill => text.includes(skill)).length;
 
-  // Check skills
-  let skillCount = skills.filter(skill => text.includes(skill)).length;
-  score += skillCount * 5;
-
-  if (skillCount >= 3) {
-    strengths.push("Good technical skills");
-  } else {
-    weaknesses.push("Lack of technical skills");
-    suggestions.push("Add more relevant skills like JavaScript, React, etc.");
+  if (frontCount > backCount && frontCount > 2) {
+    type = "Frontend Developer Resume 💻";
+  } else if (backCount > frontCount && backCount > 2) {
+    type = "Backend Developer Resume ⚙️";
   }
 
-  // Check experience
-  let expCount = experienceWords.filter(word => text.includes(word)).length;
-  score += expCount * 10;
+  // Base scoring
+  score += frontCount * 5 + backCount * 5;
 
-  if (expCount > 0) {
-    strengths.push("Has experience/projects");
-  } else {
-    weaknesses.push("No experience mentioned");
-    suggestions.push("Add projects or internship experience");
-  }
+  if (text.includes("project")) score += 10;
+  if (text.includes("experience")) score += 15;
+  if (text.includes("internship")) score += 10;
 
-  // Check education
-  let eduCount = educationWords.filter(word => text.includes(word)).length;
-  score += eduCount * 5;
-
-  if (eduCount > 0) {
-    strengths.push("Education details present");
-  } else {
-    weaknesses.push("Missing education details");
-    suggestions.push("Include your degree and university");
-  }
-
-  // Final score limit
   if (score > 100) score = 100;
 
-  // Display results
-  document.getElementById("score").textContent = "Score: " + score + "/100";
-  document.getElementById("strengths").textContent = "Strengths: " + strengths.join(", ");
-  document.getElementById("weakness").textContent = "Weaknesses: " + weaknesses.join(", ");
-  document.getElementById("suggestions").textContent = "Suggestions: " + suggestions.join(", ");
+  // Job matching logic
+  let requiredSkills = [];
+
+  if (job.includes("frontend")) {
+    requiredSkills = frontendSkills;
+  } else if (job.includes("backend")) {
+    requiredSkills = backendSkills;
+  }
+
+  let matchCount = requiredSkills.filter(skill => text.includes(skill)).length;
+
+  if (requiredSkills.length > 0) {
+    matchScore = Math.round((matchCount / requiredSkills.length) * 100);
+  }
+
+  // Suggestions
+  if (matchScore < 50) {
+    suggestions.push("❌ Resume is not strong for this role");
+    suggestions.push("👉 Add relevant skills for " + job);
+  } else if (matchScore < 80) {
+    suggestions.push("⚠️ Moderate match — improve skills");
+  } else {
+    suggestions.push("✅ Strong resume for this role!");
+  }
+
+  if (!text.includes("project")) {
+    suggestions.push("Add projects to strengthen your resume");
+  }
+
+  if (!text.includes("experience")) {
+    suggestions.push("Include experience or internships");
+  }
+
+  // Display
+  document.getElementById("type").textContent = "Resume Type: " + type;
+  document.getElementById("score").textContent = "Resume Score: " + score + "/100";
+  document.getElementById("match").textContent = "Job Match: " + matchScore + "%";
+  document.getElementById("suggestions").textContent = "Suggestions: " + suggestions.join(" | ");
 }
