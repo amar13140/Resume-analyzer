@@ -9,17 +9,18 @@
 
 <div class="container">
   <h1>🤖 AI Resume Analyzer</h1>
-  <p>Paste your resume below to get instant feedback</p>
 
-  <textarea id="resumeInput" placeholder="Paste your resume text here..."></textarea>
+  <input type="text" id="jobRole" placeholder="Enter target job (e.g. Frontend Developer)">
+
+  <textarea id="resumeInput" placeholder="Paste your resume here..."></textarea>
 
   <button onclick="analyzeResume()">Analyze Resume</button>
 
   <div class="results">
-    <h2>📊 Result</h2>
+    <h2>📊 Analysis</h2>
+    <p id="type"></p>
     <p id="score"></p>
-    <p id="strengths"></p>
-    <p id="weakness"></p>
+    <p id="match"></p>
     <p id="suggestions"></p>
   </div>
 </div>
