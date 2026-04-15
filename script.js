@@ -2,70 +2,100 @@ function analyzeResume() {
   const text = document.getElementById("resumeInput").value.toLowerCase();
   const job = document.getElementById("jobRole").value.toLowerCase();
 
-  // Skill categories
-  const frontendSkills = ["html", "css", "javascript", "react", "ui", "frontend"];
-  const backendSkills = ["node", "python", "java", "api", "database", "backend"];
-
   let score = 0;
   let matchScore = 0;
-  let type = "General";
+  let type = "General Resume";
   let suggestions = [];
 
-  // Detect resume type
-  let frontCount = frontendSkills.filter(skill => text.includes(skill)).length;
-  let backCount = backendSkills.filter(skill => text.includes(skill)).length;
+  // Skill categories
+  const frontendSkills = ["html", "css", "javascript", "react"];
+  const backendSkills = ["node", "python", "java", "database"];
+  const professorSkills = [
+    "teaching", "research", "curriculum", "students",
+    "lecture", "education", "university", "academic"
+  ];
 
-  if (frontCount > backCount && frontCount > 2) {
-    type = "Frontend Developer Resume 💻";
-  } else if (backCount > frontCount && backCount > 2) {
-    type = "Backend Developer Resume ⚙️";
+  const commonSkills = [
+    "communication", "leadership", "problem solving",
+    "teamwork", "presentation"
+  ];
+
+  // Count matches
+  const countMatches = (skills) =>
+    skills.filter(skill => text.includes(skill)).length;
+
+  let frontCount = countMatches(frontendSkills);
+  let backCount = countMatches(backendSkills);
+  let profCount = countMatches(professorSkills);
+  let commonCount = countMatches(commonSkills);
+
+  // Detect type
+  if (profCount >= 3) {
+    type = "Professor / Academic Resume 🎓";
+  } else if (frontCount > backCount && frontCount >= 2) {
+    type = "Frontend Developer 💻";
+  } else if (backCount >= 2) {
+    type = "Backend Developer ⚙️";
   }
 
-  // Base scoring
-  score += frontCount * 5 + backCount * 5;
+  // SCORING (Balanced)
+  score += (frontCount + backCount + profCount) * 6;
+  score += commonCount * 4;
 
-  if (text.includes("project")) score += 10;
-  if (text.includes("experience")) score += 15;
-  if (text.includes("internship")) score += 10;
+  if (text.includes("experience")) score += 10;
+  if (text.includes("project") || text.includes("research")) score += 10;
+  if (text.includes("education") || text.includes("degree")) score += 10;
 
+  // Normalize score (important fix)
+  if (score < 40 && text.length > 100) score = 60;
   if (score > 100) score = 100;
 
-  // Job matching logic
+  // JOB MATCHING
   let requiredSkills = [];
 
-  if (job.includes("frontend")) {
-    requiredSkills = frontendSkills;
-  } else if (job.includes("backend")) {
-    requiredSkills = backendSkills;
-  }
+  if (job.includes("frontend")) requiredSkills = frontendSkills;
+  else if (job.includes("backend")) requiredSkills = backendSkills;
+  else if (job.includes("professor") || job.includes("teacher"))
+    requiredSkills = professorSkills;
 
-  let matchCount = requiredSkills.filter(skill => text.includes(skill)).length;
+  let matchCount = countMatches(requiredSkills);
 
   if (requiredSkills.length > 0) {
     matchScore = Math.round((matchCount / requiredSkills.length) * 100);
   }
 
+  // Make matching forgiving
+  if (matchScore < 40 && text.length > 100) matchScore = 65;
+
+  // Verdict
+  let verdict = "";
+  if (matchScore < 40) verdict = "❌ Not suitable";
+  else if (matchScore < 70) verdict = "⚠️ Moderate fit";
+  else verdict = "✅ Good fit";
+
   // Suggestions
-  if (matchScore < 50) {
-    suggestions.push("❌ Resume is not strong for this role");
-    suggestions.push("👉 Add relevant skills for " + job);
-  } else if (matchScore < 80) {
-    suggestions.push("⚠️ Moderate match — improve skills");
-  } else {
-    suggestions.push("✅ Strong resume for this role!");
+  if (matchScore < 70) {
+    suggestions.push("Add more relevant skills for " + job);
   }
 
-  if (!text.includes("project")) {
-    suggestions.push("Add projects to strengthen your resume");
+  if (!text.includes("experience") && !text.includes("research")) {
+    suggestions.push("Add experience or research work");
   }
 
-  if (!text.includes("experience")) {
-    suggestions.push("Include experience or internships");
+  if (commonCount < 2) {
+    suggestions.push("Include soft skills like communication & leadership");
   }
 
   // Display
-  document.getElementById("type").textContent = "Resume Type: " + type;
-  document.getElementById("score").textContent = "Resume Score: " + score + "/100";
-  document.getElementById("match").textContent = "Job Match: " + matchScore + "%";
-  document.getElementById("suggestions").textContent = "Suggestions: " + suggestions.join(" | ");
+  document.getElementById("type").textContent =
+    "Resume Type: " + type;
+
+  document.getElementById("score").textContent =
+    "Resume Score: " + score + "/100";
+
+  document.getElementById("match").textContent =
+    "Job Match: " + matchScore + "% (" + verdict + ")";
+
+  document.getElementById("suggestions").textContent =
+    "Suggestions: " + suggestions.join(" | ");
 }
